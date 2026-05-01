@@ -26,11 +26,24 @@ export class SalaryCounter {
   }
 
   getCurrentSecondSalary(): number {
-    const baseSecondSalary = calculateSecondSalary(
-      this.monthlySalary,
-      this.monthlyWorkingHours,
-      this.fixedWorkingHours
-    );
+    // 現在の実装: 見なし残業モード（時間ベース）を秒単位で計算
+    // TODO: Task 3 で動的計算+ルール評価に置き換え
+    let divisorHours = this.monthlyWorkingHours;
+    if (this.fixedWorkingHours) {
+      divisorHours =
+        this.monthlyWorkingHours > this.fixedWorkingHours
+          ? this.monthlyWorkingHours
+          : this.fixedWorkingHours;
+    }
+
+    const totalSecondSalaryParams = {
+      monthlySalary: this.monthlySalary,
+      actualWorkingSeconds: divisorHours * 3600,
+      remainingWorkingSeconds: 0,
+      totalSalary: this.monthlySalary,
+    };
+
+    const baseSecondSalary = calculateSecondSalary(totalSecondSalaryParams);
 
     const hour = this.currentDate.getHours();
     const multiplier = getOvertimeMultiplier(this.currentDate, hour);
