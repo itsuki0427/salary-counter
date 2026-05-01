@@ -1,10 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SalaryCounter } from './salaryCounter';
+import { Rule } from './ruleEngine';
+import { RulesList } from './components/RulesList';
+import { RuleEditor } from './components/RuleEditor';
+
+const defaultRules: Rule[] = [
+  {
+    id: 'assumed-overtime',
+    name: '見なし超過',
+    type: 'assumed-overtime',
+    condition: { assumedHours: 45 },
+    multiplier: 1.0,
+    priority: 1,
+    enabled: true,
+  },
+  {
+    id: 'midnight',
+    name: '深夜労働（22-5時）',
+    type: 'time-range',
+    condition: { startHour: 22, endHour: 5 },
+    multiplier: 1.25,
+    priority: 2,
+    enabled: true,
+  },
+  {
+    id: 'sunday',
+    name: '休日労働（日曜）',
+    type: 'weekday',
+    condition: { dayOfWeek: 0 },
+    multiplier: 1.25,
+    priority: 3,
+    enabled: true,
+  },
+];
 
 export const SalaryCounterComponent: React.FC = () => {
   const [monthlySalary, setMonthlySalary] = useState<number>(300000);
   const [monthlyWorkingHours, setMonthlyWorkingHours] = useState<number>(160);
   const [fixedWorkingHours, setFixedWorkingHours] = useState<number | undefined>(45);
+  const [paymentDate, setPaymentDate] = useState<number>(31);
+  const [rules, setRules] = useState<Rule[]>(defaultRules);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [accumulatedSalary, setAccumulatedSalary] = useState<number>(0);
   const [currentSecondSalary, setCurrentSecondSalary] = useState<number>(0);
@@ -17,11 +52,13 @@ export const SalaryCounterComponent: React.FC = () => {
       monthlySalary,
       monthlyWorkingHours,
       fixedWorkingHours,
+      paymentDate,
+      rules,
       currentDate: new Date(),
     });
     setAccumulatedSalary(0);
     updateDisplay();
-  }, [monthlySalary, monthlyWorkingHours, fixedWorkingHours]);
+  }, [monthlySalary, monthlyWorkingHours, fixedWorkingHours, paymentDate, rules]);
 
   useEffect(() => {
     if (isRunning && counterRef.current) {
@@ -61,10 +98,28 @@ export const SalaryCounterComponent: React.FC = () => {
       monthlySalary,
       monthlyWorkingHours,
       fixedWorkingHours,
+      paymentDate,
+      rules,
       currentDate: new Date(),
     });
     setAccumulatedSalary(0);
     updateDisplay();
+  };
+
+  const handleAddRule = (newRule: Rule) => {
+    setRules([...rules, newRule]);
+  };
+
+  const handleToggleRule = (id: string) => {
+    setRules(
+      rules.map((r) =>
+        r.id === id ? { ...r, enabled: !r.enabled } : r
+      )
+    );
+  };
+
+  const handleDeleteRule = (id: string) => {
+    setRules(rules.filter((r) => r.id !== id));
   };
 
   return (
@@ -105,6 +160,25 @@ export const SalaryCounterComponent: React.FC = () => {
             placeholder="45"
           />
         </label>
+
+        <label>
+          給与日（日）:
+          <input
+            type="number"
+            min="1"
+            max="31"
+            value={paymentDate}
+            onChange={(e) => setPaymentDate(Number(e.target.value))}
+            disabled={isRunning}
+            style={styles.input}
+          />
+        </label>
+      </div>
+
+      <div style={styles.rulesSection}>
+        <h2>ルール管理</h2>
+        <RulesList rules={rules} onToggleRule={handleToggleRule} onDeleteRule={handleDeleteRule} />
+        <RuleEditor onAddRule={handleAddRule} />
       </div>
 
       <div style={styles.displaySection}>
@@ -181,5 +255,11 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
+  },
+  rulesSection: {
+    marginBottom: '30px',
+    padding: '15px',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
   },
 };
