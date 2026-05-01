@@ -45,7 +45,7 @@ export const SalaryCounterComponent: React.FC = () => {
   const [currentSecondSalary, setCurrentSecondSalary] = useState<number>(0);
 
   const counterRef = useRef<SalaryCounter | null>(null);
-  const intervalRef = useRef<NodeJS.Timer | null>(null);
+  const intervalRef = useRef<any>(null);
 
   useEffect(() => {
     counterRef.current = new SalaryCounter({
