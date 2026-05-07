@@ -22,6 +22,7 @@ describe('SalaryCounter - 動的計算 + ルール統合', () => {
         currentDate: new Date(2026, 4, 1, 9, 0, 0),
       });
 
+      counter.start(); // calculationStartDate を現在時刻にリセット
       const before = counter.getAccumulatedSalary();
       counter.advanceSeconds(3);
       const after = counter.getAccumulatedSalary();

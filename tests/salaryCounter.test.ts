@@ -10,6 +10,7 @@ describe('SalaryCounter - 既存互換テスト', () => {
       currentDate: new Date(2026, 4, 1, 9, 0, 0),
     });
 
+    counter.start(); // calculationStartDate を現在時刻にリセット
     expect(counter.getAccumulatedSalary()).toBe(0);
   });
 
@@ -22,6 +23,7 @@ describe('SalaryCounter - 既存互換テスト', () => {
       currentDate: new Date(2026, 4, 1, 9, 0, 0),
     });
 
+    counter.start(); // calculationStartDate を現在時刻にリセット
     const before = counter.getAccumulatedSalary();
     counter.advanceSeconds(1);
     const after = counter.getAccumulatedSalary();
@@ -38,6 +40,7 @@ describe('SalaryCounter - 既存互換テスト', () => {
       currentDate: new Date(2026, 4, 1, 9, 0, 0),
     });
 
+    counter.start(); // calculationStartDate を現在時刻にリセット
     const before = counter.getAccumulatedSalary();
     counter.advanceSeconds(3600);
     const after = counter.getAccumulatedSalary();

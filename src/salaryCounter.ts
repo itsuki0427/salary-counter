@@ -17,8 +17,10 @@ export class SalaryCounter {
   private paymentDate: number;
   private rules: Rule[];
   private currentDate: Date;
+  private calculationStartDate: Date;
   private accumulatedSalary: number = 0;
   private actualWorkingSeconds: number = 0;
+  private isRunning: boolean = false;
 
   constructor(config: SalaryCounterConfig) {
     this.monthlySalary = config.monthlySalary;
@@ -27,10 +29,42 @@ export class SalaryCounter {
     this.paymentDate = config.paymentDate ?? 31;
     this.rules = config.rules ?? [];
     this.currentDate = new Date(config.currentDate);
+    this.calculationStartDate = this.calculateStartDate(this.paymentDate, this.currentDate);
+    this.isRunning = true; // 初期状態は実行中（テスト互換性）
+  }
+
+  private calculateStartDate(paymentDate: number, currentDate: Date): Date {
+    // 給与日の前月1日が計算開始日
+    // currentDate が給与日以前 → 前月の給与日の次の日
+    // currentDate が給与日を過ぎた → 当月の給与日の次の日
+
+    const current = new Date(currentDate);
+    const year = current.getFullYear();
+    const month = current.getMonth();
+    const date = current.getDate();
+
+    // 給与日が当月にあるかチェック
+    const paymentThisMonth = new Date(year, month, paymentDate);
+
+    if (current <= paymentThisMonth) {
+      // 給与日以前 → 前月の給与日の次の日 = 前々月の末日の翌日
+      const previousMonthStart = new Date(year, month - 1, 1);
+      return previousMonthStart;
+    } else {
+      // 給与日を過ぎた → 当月の給与日の次の日 = 当月1日
+      const thisMonthStart = new Date(year, month, 1);
+      return thisMonthStart;
+    }
   }
 
   getAccumulatedSalary(): number {
-    return this.accumulatedSalary;
+    // 計算開始日からの経過秒数を計算
+    const elapsedMs = this.currentDate.getTime() - this.calculationStartDate.getTime();
+    const elapsedSeconds = Math.max(0, elapsedMs / 1000);
+
+    // 累計給与 = 経過秒数 × 秒給
+    const secondSalary = this.getCurrentSecondSalary();
+    return elapsedSeconds * secondSalary;
   }
 
   getCurrentSecondSalary(): number {
@@ -68,12 +102,30 @@ export class SalaryCounter {
   }
 
   advanceSeconds(seconds: number): void {
-    const secondSalary = this.getCurrentSecondSalary();
-    this.accumulatedSalary += secondSalary * seconds;
-    this.actualWorkingSeconds += seconds;
+    if (!this.isRunning) return; // 実行中のみ処理
 
+    this.actualWorkingSeconds += seconds;
     // 時刻を進める
     this.currentDate.setSeconds(this.currentDate.getSeconds() + seconds);
+  }
+
+  start(): void {
+    this.isRunning = true;
+    // 開始時に計算開始日を「今」にリセット
+    this.resetCalculationStartDate();
+  }
+
+  stop(): void {
+    this.isRunning = false;
+  }
+
+  resetCalculationStartDate(): void {
+    // 現在時刻を計算開始日として設定
+    this.calculationStartDate = new Date(this.currentDate);
+  }
+
+  isCounterRunning(): boolean {
+    return this.isRunning;
   }
 
   calculateRemainingSeconds(): number {
