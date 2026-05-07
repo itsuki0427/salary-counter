@@ -1,22 +1,51 @@
-export function calculateSecondSalary(
-  monthlySalary: number,
-  actualWorkingHours: number,
-  fixedWorkingHours?: number
-): number {
-  if (monthlySalary < 0) {
-    throw new Error('月給は0以上である必要があります');
+export interface CalculateSecondSalaryParams {
+  monthlySalary: number;
+  actualWorkingSeconds: number;
+  remainingWorkingSeconds: number;
+  totalSalary: number;
+}
+
+export function calculateSecondSalary(params: CalculateSecondSalaryParams): number {
+  const totalSeconds = params.actualWorkingSeconds + params.remainingWorkingSeconds;
+  if (totalSeconds <= 0) {
+    throw new Error('実勤務秒 + 残り予定秒は0より大きい必要があります');
   }
-  if (actualWorkingHours <= 0) {
-    throw new Error('勤務時間は0より大きい必要があります');
+  return params.totalSalary / totalSeconds;
+}
+
+import { Rule } from './ruleEngine';
+
+export interface CalculateOvertimeSalaryParams {
+  monthlySalary: number;
+  monthlyWorkingHours: number;
+  actualWorkingHours: number;
+  assumedWorkingHours?: number;
+  appliedRules: Rule[];
+}
+
+export function calculateOvertimeSalary(params: CalculateOvertimeSalaryParams): number {
+  const { monthlySalary, monthlyWorkingHours, actualWorkingHours, assumedWorkingHours, appliedRules } = params;
+
+  if (!appliedRules || appliedRules.length === 0) {
+    return 0;
   }
 
-  // 見なし残業モード：実作業時間が見なし時間を超えたら実作業時間で割る、それ以外は見なし時間で割る
-  const divisorHours = fixedWorkingHours && actualWorkingHours > fixedWorkingHours
-    ? actualWorkingHours
-    : (fixedWorkingHours || actualWorkingHours);
+  if (assumedWorkingHours === undefined) {
+    return 0;
+  }
 
-  const totalSecondsInMonth = divisorHours * 3600;
-  return monthlySalary / totalSecondsInMonth;
+  const overHours = Math.max(0, actualWorkingHours - assumedWorkingHours);
+  if (overHours <= 0) {
+    return 0;
+  }
+
+  const baseHourlyRate = monthlySalary / monthlyWorkingHours;
+
+  // 最優先ルール（priority最小）の倍率を使用
+  const sortedRules = [...appliedRules].sort((a, b) => a.priority - b.priority);
+  const multiplier = sortedRules[0]?.multiplier ?? 1.0;
+
+  return overHours * baseHourlyRate * multiplier;
 }
 
 export function getOvertimeMultiplier(date: Date, hour: number = 0): number {
